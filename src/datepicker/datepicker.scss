@@ -13,6 +13,12 @@ ngb-datepicker {
 }
 
 .ngb-dp {
+  &-date-time-picker{
+    .form-control{
+      width: 100%;
+    }
+  }
+
   &-body {
     z-index: 1050;
   }

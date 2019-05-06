@@ -32,6 +32,7 @@ import {NgbDateStruct} from './ngb-date-struct';
 import {NgbDatepickerI18n} from './datepicker-i18n';
 import {isChangedDate} from './datepicker-tools';
 import {hasClassName} from '../util/util';
+import { NgbTimepickerConfig, NgbTimeStruct } from '../timepicker/timepicker.module';
 
 const NGB_DATEPICKER_VALUE_ACCESSOR = {
   provide: NG_VALUE_ACCESSOR,
@@ -73,35 +74,42 @@ export interface NgbDatepickerNavigateEvent {
   encapsulation: ViewEncapsulation.None,
   styleUrls: ['./datepicker.scss'],
   template: `
-    <ng-template #dt let-date="date" let-currentMonth="currentMonth" let-selected="selected" let-disabled="disabled" let-focused="focused">
+    <ng-template #dt let-date="date" let-currentMonth="currentMonth" let-selected="selected" let-disabled="disabled"
+                 let-focused="focused">
       <div ngbDatepickerDayView
-        [date]="date"
-        [currentMonth]="currentMonth"
-        [selected]="selected"
-        [disabled]="disabled"
-        [focused]="focused">
+           [date]="date"
+           [currentMonth]="currentMonth"
+           [selected]="selected"
+           [disabled]="disabled"
+           [focused]="focused">
       </div>
     </ng-template>
 
-    <div class="ngb-dp-header bg-light">
+    <ng-template #ft>
+      <button (click)="changeDisplayMode()" type="button">
+        Time
+      </button>
+    </ng-template>
+
+    <div class="ngb-dp-header bg-light" *ngIf="displayMode == 'date'">
       <ngb-datepicker-navigation *ngIf="navigation !== 'none'"
-        [date]="model.firstDate"
-        [months]="model.months"
-        [disabled]="model.disabled"
-        [showSelect]="model.navigation === 'select'"
-        [prevDisabled]="model.prevDisabled"
-        [nextDisabled]="model.nextDisabled"
-        [selectBoxes]="model.selectBoxes"
-        (navigate)="onNavigateEvent($event)"
-        (select)="onNavigateDateSelect($event)">
+                                 [date]="model.firstDate"
+                                 [months]="model.months"
+                                 [disabled]="model.disabled"
+                                 [showSelect]="model.navigation === 'select'"
+                                 [prevDisabled]="model.prevDisabled"
+                                 [nextDisabled]="model.nextDisabled"
+                                 [selectBoxes]="model.selectBoxes"
+                                 (navigate)="onNavigateEvent($event)"
+                                 (select)="onNavigateDateSelect($event)">
       </ngb-datepicker-navigation>
     </div>
 
-    <div #months class="ngb-dp-months" (keydown)="onKeyDown($event)">
+    <div #months class="ngb-dp-months tanalt" (keydown)="onKeyDown($event)" *ngIf="displayMode == 'date'">
       <ng-template ngFor let-month [ngForOf]="model.months" let-i="index">
         <div class="ngb-dp-month">
           <div *ngIf="navigation === 'none' || (displayMonths > 1 && navigation === 'select')"
-                class="ngb-dp-month-name bg-light">
+               class="ngb-dp-month-name bg-light">
             {{ i18n.getMonthFullName(month.number, month.year) }} {{ i18n.getYearNumerals(month.year) }}
           </div>
           <ngb-datepicker-month-view
@@ -112,10 +120,15 @@ export interface NgbDatepickerNavigateEvent {
             (select)="onDateSelect($event)">
           </ngb-datepicker-month-view>
         </div>
-      </ng-template>
+      </ng-template >
     </div>
 
-    <ng-template [ngTemplateOutlet]="footerTemplate"></ng-template>
+    <div *ngIf="displayMode=='time'">
+      <ngb-timepicker class="ngb-dp-date-time-picker" [(ngModel)]="timeModel" [meridian]="timeMeridian" [seconds]="timeSeconds" [spinners]="timeSpinners"></ngb-timepicker>
+    </div>
+    tagla
+    <ng-template [ngTemplateOutlet]="footerTemplate || ft"></ng-template>
+    {{_controlValue | json}}
   `,
   providers: [NGB_DATEPICKER_VALUE_ACCESSOR, NgbDatepickerService, NgbDatepickerKeyMapService]
 })
@@ -126,6 +139,24 @@ export class NgbDatepicker implements OnDestroy,
   @ViewChild('months') private _monthsEl: ElementRef<HTMLElement>;
   private _controlValue: NgbDate;
   private _destroyed$ = new Subject<void>();
+  private displayMode = 'date';
+  private timeModel :NgbTimeStruct;
+
+
+  /**
+   * Whether to display 12H or 24H mode.
+   */
+  @Input() timeMeridian: boolean;
+
+  /**
+   * If `true`, the spinners above and below inputs are visible.
+   */
+  @Input() timeSpinners: boolean;
+
+  /**
+   * If `true`, it is possible to select seconds.
+   */
+  @Input() timeSeconds: boolean;
 
   /**
    * The reference to a custom template for the day.
@@ -249,10 +280,15 @@ export class NgbDatepicker implements OnDestroy,
       private _keyMapService: NgbDatepickerKeyMapService, public _service: NgbDatepickerService,
       private _calendar: NgbCalendar, public i18n: NgbDatepickerI18n, config: NgbDatepickerConfig,
       private _cd: ChangeDetectorRef, private _elementRef: ElementRef<HTMLElement>,
-      private _ngbDateAdapter: NgbDateAdapter<any>, private _ngZone: NgZone) {
+      private _ngbDateAdapter: NgbDateAdapter<any>, private _ngZone: NgZone,
+      private readonly _timeConfig: NgbTimepickerConfig) {
     ['dayTemplate', 'dayTemplateData', 'displayMonths', 'firstDayOfWeek', 'footerTemplate', 'markDisabled', 'minDate',
      'maxDate', 'navigation', 'outsideDays', 'showWeekdays', 'showWeekNumbers', 'startDate']
         .forEach(input => this[input] = config[input]);
+
+    this.timeSpinners = _timeConfig.spinners;
+    this.timeSeconds = _timeConfig.seconds;
+    this.timeMeridian = _timeConfig.meridian;
 
     _service.select$.pipe(takeUntil(this._destroyed$)).subscribe(date => { this.select.emit(date); });
 
@@ -388,5 +424,9 @@ export class NgbDatepicker implements OnDestroy,
   writeValue(value) {
     this._controlValue = NgbDate.from(this._ngbDateAdapter.fromModel(value));
     this._service.select(this._controlValue);
+  }
+
+  changeDisplayMode() {
+    this.displayMode = this.displayMode === 'time' ? 'date' : 'time';
   }
 }

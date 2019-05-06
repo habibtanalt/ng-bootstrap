@@ -7,6 +7,7 @@ import {NgbDatepickerNavigation} from './datepicker-navigation';
 import {NgbInputDatepicker} from './datepicker-input';
 import {NgbDatepickerDayView} from './datepicker-day-view';
 import {NgbDatepickerNavigationSelect} from './datepicker-navigation-select';
+import { NgbTimepickerModule } from '../timepicker/timepicker.module';
 
 export {NgbDatepicker, NgbDatepickerNavigateEvent} from './datepicker';
 export {NgbInputDatepicker} from './datepicker-input';
@@ -35,7 +36,7 @@ export {NgbDateParserFormatter} from './ngb-date-parser-formatter';
     NgbInputDatepicker
   ],
   exports: [NgbDatepicker, NgbInputDatepicker],
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NgbTimepickerModule],
   entryComponents: [NgbDatepicker]
 })
 export class NgbDatepickerModule {
